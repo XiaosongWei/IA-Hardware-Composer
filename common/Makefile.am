@@ -23,7 +23,7 @@ SUBDIRS = .
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 
-AM_CPP_INCLUDES = -Icore -Iutils -Icompositor -Idisplay -I../os/ -I../os/linux/ -I../public/ -I../wsi/
+AM_CPP_INCLUDES = -Icore -Iutils -Icompositor -Icompositor/va -Idisplay -I../os/ -I../os/linux/ -I../public/ -I../wsi/
 AM_CPPFLAGS = -std=c++11 -fPIC -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong -fPIE -DENABLE_DOUBLE_BUFFERING -DENABLE_IMPLICIT_CLONE_MODE
 AM_CPPFLAGS += $(AM_CPP_INCLUDES) $(CWARNFLAGS) $(DRM_CFLAGS) $(DEBUG_CFLAGS) -Wformat -Wformat-security
 
@@ -31,24 +31,16 @@ if !ENABLE_GBM
 AM_CPPFLAGS += -DUSE_MINIGBM
 endif
 
-libhwcomposer_common_la_LIBADD = \
-	$(DRM_LIBS) \
-	$(GBM_LIBS) \
-	$(EGL_LIBS) \
-	-lm
-
 libhwcomposer_common_la_LTLIBRARIES = libhwcomposer_common.la
 libhwcomposer_common_la_SOURCES = $(common_SOURCES)
 if ENABLE_VULKAN
 libhwcomposer_common_la_SOURCES += $(vk_SOURCES)
 AM_CPP_INCLUDES += -Icompositor/vk
 AM_CPPFLAGS += -Icompositor/vk -DUSE_VK -DDISABLE_EXPLICIT_SYNC
-libhwcomposer_common_la_LIBADD += -lvulkan
 else
 libhwcomposer_common_la_SOURCES += $(gl_SOURCES)
 AM_CPP_INCLUDES += -Icompositor/gl
 AM_CPPFLAGS += -DUSE_GL
-libhwcomposer_common_la_LIBADD += $(GLES2_LIBS)
 endif
 
 libhwcomposer_common_ladir = $(libdir)

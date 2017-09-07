@@ -37,7 +37,9 @@ LOCAL_SHARED_LIBRARIES := \
 	libui \
 	libutils \
         libhwcservice \
-	libbinder
+	libbinder \
+	libva \
+	libva-android
 
 LOCAL_C_INCLUDES := \
 	system/core/include/utils \

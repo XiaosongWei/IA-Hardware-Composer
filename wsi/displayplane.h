@@ -39,6 +39,7 @@ class DisplayPlane {
   virtual bool IsSupportedFormat(uint32_t format) = 0;
 
   virtual uint32_t GetFormatForFrameBuffer(uint32_t format) = 0;
+  virtual uint32_t GetPreferredVideoFormat() const = 0;
 
   virtual void Dump() const = 0;
 };

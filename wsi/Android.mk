@@ -26,7 +26,8 @@ LOCAL_SHARED_LIBRARIES := \
         libui \
         libutils \
         libhwcservice \
-        libbinder
+        libbinder \
+				libva
 
 LOCAL_C_INCLUDES := \
         system/core/include/utils \
@@ -34,12 +35,14 @@ LOCAL_C_INCLUDES := \
         $(LOCAL_PATH)/../common/core \
         $(LOCAL_PATH)/../common/compositor \
         $(LOCAL_PATH)/../common/compositor/gl \
+        $(LOCAL_PATH)/../common/compositor/va \
         $(LOCAL_PATH)/../common/display \
         $(LOCAL_PATH)/../common/utils \
         $(LOCAL_PATH)/../os \
         $(LOCAL_PATH)/../os/android \
         $(LOCAL_PATH)/../wsi \
-        $(LOCAL_PATH)/../wsi/drm
+        $(LOCAL_PATH)/../wsi/drm \
+        $(TARGET_OUT_HEADERS)/libva
 
 LOCAL_SRC_FILES := \
         physicaldisplay.cpp \

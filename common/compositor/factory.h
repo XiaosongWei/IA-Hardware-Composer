@@ -27,6 +27,8 @@ class Renderer;
 
 NativeSurface* CreateBackBuffer(uint32_t width, uint32_t height);
 
+NativeSurface* CreateVideoBuffer(uint32_t width, uint32_t height);
+
 Renderer* CreateRenderer();
 
 NativeGpuResource* CreateNativeGpuResourceHandler();
