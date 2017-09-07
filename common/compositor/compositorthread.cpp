@@ -87,7 +87,18 @@ void CompositorThread::Draw(std::vector<DrawState> &states,
   }
 
   tasks_lock_.lock();
-  tasks_ |= kRender;
+  tasks_ |= kRenderGL;
+  tasks_lock_.unlock();
+  Resume();
+  Wait();
+}
+
+void CompositorThread::Draw(  std::vector<OverlayLayer*> &layers,
+                              std::vector<NativeSurface*>& surfaces) {
+  layers_.swap(layers);
+  surfaces_.swap(surfaces);
+  tasks_lock_.lock();
+  tasks_ |= kRenderVA;
   tasks_lock_.unlock();
   Resume();
   Wait();
@@ -97,9 +108,15 @@ void CompositorThread::ExitThread() {
   release_all_resources_ = true;
   FreeResources(true);
   HWCThread::Exit();
+
+  va_renderer_.reset(nullptr);
+  std::vector<OverlayLayer*>().swap(layers_);
+  std::vector<NativeSurface*>().swap(surfaces_);
+
   renderer_.reset(nullptr);
   std::vector<DrawState>().swap(states_);
   std::vector<OverlayBuffer *>().swap(buffers_);
+
   release_all_resources_ = false;
 }
 
@@ -108,8 +125,13 @@ void CompositorThread::ReleaseGpuResources() {
 }
 
 void CompositorThread::HandleRoutine() {
-  if (tasks_ & kRender) {
-    HandleDrawRequest();
+  if (tasks_ & kRenderGL) {
+    HandleDrawGLRequest();
+    cevent_.Signal();
+  }
+
+  if (tasks_ & kRenderVA) {
+    HandleDrawVARequest();
     cevent_.Signal();
   }
 
@@ -145,9 +167,9 @@ void CompositorThread::HandleReleaseRequest() {
   }
 }
 
-void CompositorThread::HandleDrawRequest() {
+void CompositorThread::HandleDrawGLRequest() {
   tasks_lock_.lock();
-  tasks_ &= ~kRender;
+  tasks_ &= ~kRenderGL;
   tasks_lock_.unlock();
 
   if (!renderer_) {
@@ -206,6 +228,33 @@ void CompositorThread::HandleDrawRequest() {
 
   if (disable_explicit_sync_)
     renderer_->InsertFence(-1);
+}
+
+void CompositorThread::HandleDrawVARequest() {
+  tasks_lock_.lock();
+  tasks_ &= ~kRenderVA;
+  tasks_lock_.unlock();
+
+  if (!va_renderer_) {
+    va_renderer_.reset(new VARenderer);
+    if (!va_renderer_->Init(plane_manager_->GetGpuFd())) {
+      ETRACE("Failed to initialize VARenderer %s", PRINTERROR());
+      va_renderer_.reset(nullptr);
+      return;
+    }
+  }
+
+  size_t size = layers_.size();
+  for (size_t i = 0; i < size; i++) {
+    if (!va_renderer_->Draw(layers_[i], surfaces_[i])) {
+      ETRACE(
+          "Failed to render the frame by VA, "
+          "error: %s\n",
+          PRINTERROR());
+      break;
+    }
+  }
+
 }
 
 }  // namespace hwcomposer

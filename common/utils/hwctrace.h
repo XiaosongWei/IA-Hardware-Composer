@@ -198,12 +198,12 @@ class TraceFunc {
         break;                                                             \
     }                                                                      \
     comp_plane.plane()->Dump();                                            \
-    DUMPTRACE("Composition Plane State ends for Index: %d", plane_index);  \
+    DUMPTRACE("Composition Plane State ends for Index: %d\n", plane_index);  \
     plane_index++;                                                         \
   }                                                                        \
   DUMPTRACE(                                                               \
       "Dumping DisplayPlaneState of Current Composition planes ends. "     \
-      "-----------------------------");
+      "-----------------------------\n");
 #else
 #define DUMP_CURRENT_COMPOSITION_PLANES() ((void)0)
 #endif

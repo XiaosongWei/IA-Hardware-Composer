@@ -138,6 +138,8 @@ void DisplayQueue::GetCachedLayers(const std::vector<OverlayLayer>& layers,
 
     composition->emplace_back(plane.plane());
     DisplayPlaneState& last_plane = composition->back();
+    last_plane.SetVideoSeparatePlane(plane.VideoSeparatePlane());
+
     if (plane.IsCursorPlane()) {
       last_plane.AddLayersForCursor(
           plane.source_layers(), plane.GetDisplayFrame(),
