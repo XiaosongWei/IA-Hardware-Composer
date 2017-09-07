@@ -4,6 +4,12 @@ common_SOURCES =              \
     common/compositor/factory.cpp \
     common/compositor/nativesurface.cpp \
     common/compositor/renderstate.cpp \
+    common/compositor/va/arenderer.h \
+    common/compositor/va/varenderer.cpp \
+    common/compositor/va/varenderthread.h \
+    common/compositor/va/varenderthread.cpp \
+    common/compositor/va/vasurface.h \
+    common/compositor/va/vasurface.cpp \
     common/core/hwclayer.cpp \
     common/core/hwclock.cpp \
     common/core/overlaylayer.cpp \

@@ -211,6 +211,14 @@ class DisplayPlaneState {
     return cursor_layer_;
   }
 
+  bool PreferSeparatePlane() const {
+    return prefer_separate_plane_;
+  }
+
+  void SetPreferSeparatePlane(bool separate) {
+    prefer_separate_plane_ = separate;
+  }
+
  private:
   State state_ = State::kScanout;
   DisplayPlane *plane_ = NULL;
@@ -221,6 +229,7 @@ class DisplayPlaneState {
   bool recycled_surface_ = false;
   bool clear_surface_ = true;
   bool cursor_plane_ = false;
+  bool prefer_separate_plane_ = false;
   int cursor_layer_ = 0;
   std::vector<NativeSurface *> surfaces_;
 };

@@ -1,5 +1,5 @@
 /*
-// Copyright (c) 2016 Intel Corporation
+// Copyright (c) 2017 Intel Corporation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,24 +14,30 @@
 // limitations under the License.
 */
 
-#ifndef COMMON_COMPOSITOR_FACTORY_H_
-#define COMMON_COMPOSITOR_FACTORY_H_
+#include "vasurface.h"
 
-#include <stdint.h>
+#include "hwctrace.h"
+#include "overlaybuffer.h"
 
 namespace hwcomposer {
 
-class NativeGpuResource;
-class NativeSurface;
-class Renderer;
+VASurface::VASurface(uint32_t width, uint32_t height)
+    : NativeSurface(width, height) {
+}
 
-NativeSurface* CreateBackBuffer(uint32_t width, uint32_t height);
+VASurface::~VASurface() {
+}
 
-NativeSurface* CreateVideoBuffer(uint32_t width, uint32_t height);
+bool VASurface::InitializeVA() {
+  return true;
+}
 
-Renderer* CreateRenderer();
+bool VASurface::MakeCurrent() {
+  return true;
+}
 
-NativeGpuResource* CreateNativeGpuResourceHandler();
+bool VASurface::IsVideoSurface() {
+  return true;
+}
 
 }  // namespace hwcomposer
-#endif  // COMMON_COMPOSITOR_FACTORY_H_

@@ -27,6 +27,7 @@
 #include "renderstate.h"
 #include "compositorthread.h"
 #include "factory.h"
+#include "varenderthread.h"
 
 namespace hwcomposer {
 
@@ -66,6 +67,7 @@ class Compositor {
                       std::vector<CompositionRegion> &comp_regions);
 
   std::unique_ptr<CompositorThread> thread_;
+  std::unique_ptr<VARenderThread> va_thread_;
 };
 
 }  // namespace hwcomposer

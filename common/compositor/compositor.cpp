@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include "disjoint_layers.h"
+#include "displayplanemanager.h"
 #include "displayplanestate.h"
 #include "hwctrace.h"
 #include "nativegpuresource.h"
@@ -42,6 +43,10 @@ void Compositor::Init(DisplayPlaneManager *plane_manager) {
     thread_.reset(new CompositorThread());
 
   thread_->Initialize(plane_manager);
+
+  if (!va_thread_)
+    va_thread_.reset(new VARenderThread());
+  va_thread_->Initialize(plane_manager->GetGpuFd());
 }
 
 void Compositor::EnsureTasksAreDone() {
@@ -56,6 +61,8 @@ bool Compositor::BeginFrame(bool disable_explicit_sync) {
 void Compositor::Reset() {
   if (thread_)
     thread_->ExitThread();
+  if (va_thread_)
+    va_thread_->ExitThread();
 }
 
 bool Compositor::Draw(DisplayPlaneStateList &comp_planes,
@@ -65,6 +72,8 @@ bool Compositor::Draw(DisplayPlaneStateList &comp_planes,
   const DisplayPlaneState *comp = NULL;
   std::vector<size_t> dedicated_layers;
   std::vector<DrawState> draw_state;
+  std::vector<OverlayLayer*> va_layers;
+  std::vector<NativeSurface*> va_surfaces;
 
   for (DisplayPlaneState &plane : comp_planes) {
     if (plane.GetCompositionState() == DisplayPlaneState::State::kScanout) {
@@ -73,6 +82,14 @@ bool Compositor::Draw(DisplayPlaneStateList &comp_planes,
                               plane.source_layers().end());
     } else if (plane.GetCompositionState() ==
                DisplayPlaneState::State::kRender) {
+      if (plane.PreferSeparatePlane()) {
+        dedicated_layers.insert(dedicated_layers.end(),
+                              plane.source_layers().begin(),
+                              plane.source_layers().end());
+        va_layers.emplace_back(&layers[plane.source_layers()[0]]);
+        va_surfaces.emplace_back(plane.GetOffScreenTarget());
+        continue;
+      }
       comp = &plane;
       std::vector<CompositionRegion> &comp_regions =
           plane.GetCompositionRegion();
@@ -102,10 +119,16 @@ bool Compositor::Draw(DisplayPlaneStateList &comp_planes,
     }
   }
 
-  if (draw_state.empty())
-    return true;
+  if (!va_layers.empty()) {
+    va_thread_->Draw(va_layers, va_surfaces);
+  }
 
-  thread_->Draw(draw_state, layers);
+  if (!draw_state.empty())
+    thread_->Draw(draw_state, layers);
+
+  if (!va_layers.empty())
+    va_thread_->Wait();
+
   return true;
 }
 

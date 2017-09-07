@@ -14,35 +14,26 @@
 // limitations under the License.
 */
 
-#ifndef WSI_DISPLAYPLANE_H_
-#define WSI_DISPLAYPLANE_H_
+#ifndef COMMON_COMPOSITOR_VA_VASURFACE_H_
+#define COMMON_COMPOSITOR_VA_VASURFACE_H_
 
-#include <stdlib.h>
-#include <stdint.h>
+#include "nativesurface.h"
+
 
 namespace hwcomposer {
 
-struct OverlayLayer;
-
-class DisplayPlane {
+class VASurface : public NativeSurface {
  public:
-  virtual ~DisplayPlane() {
-  }
+  VASurface() = default;
+  ~VASurface() override;
+  VASurface(uint32_t width, uint32_t height);
 
-  virtual uint32_t id() const = 0;
-  virtual void SetEnabled(bool enabled) = 0;
+  bool MakeCurrent() override;
+  bool IsVideoSurface() override;
 
-  virtual bool IsEnabled() const = 0;
-
-  virtual bool ValidateLayer(const OverlayLayer* layer) = 0;
-
-  virtual bool IsSupportedFormat(uint32_t format) = 0;
-
-  virtual uint32_t GetFormatForFrameBuffer(uint32_t format) = 0;
-  virtual uint32_t GetPreferredVideoFormat() const = 0;
-
-  virtual void Dump() const = 0;
+ private:
+  bool InitializeVA();
 };
 
 }  // namespace hwcomposer
-#endif  // WSI_DISPLAYPLANE_H_
+#endif  // COMMON_COMPOSITOR_VA_VASURFACE_H_

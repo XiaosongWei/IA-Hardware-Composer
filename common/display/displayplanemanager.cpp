@@ -80,13 +80,8 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
       // all layers in this case.
       return render_layers;
     } else {
-      ResetPlaneTarget(composition.back(), commit_planes.back());
+      composition.back().ForceGPURendering();
     }
-  }
-
-  // We are just compositing Primary layer and nothing else.
-  if (layers.size() == 1) {
-    return render_layers;
   }
 
   // Retrieve cursor layer data.
@@ -133,8 +128,8 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
             layer->PreferSeparatePlane()) {
           composition.emplace_back(j->get(), layer, index);
           if (fall_back) {
-            ResetPlaneTarget(composition.back(), commit_planes.back());
             render_layers = true;
+            composition.back().ForceGPURendering();
           }
 
           prefer_seperate_plane = layer->PreferSeparatePlane();
@@ -252,7 +247,7 @@ void DisplayPlaneManager::SetOffScreenCursorPlaneTarget(
 
   if (!surface) {
     NativeSurface *new_surface = CreateBackBuffer(width, height);
-    new_surface->Init(buffer_handler_, true);
+    new_surface->Init(buffer_handler_, 0, true);
     cursor_surfaces_.emplace_back(std::move(new_surface));
     surface = cursor_surfaces_.back().get();
   }
@@ -292,17 +287,27 @@ void DisplayPlaneManager::EnsureOffScreenTarget(DisplayPlaneState &plane) {
   const HwcRect<int> &rect = plane.GetDisplayFrame();
   int width = rect.right - rect.left;
   int height = rect.bottom - rect.top;
+  bool prefer_separate = plane.PreferSeparatePlane();
   for (auto &fb : surfaces_) {
     if (!fb->InUse() && (width == fb->GetWidth()) &&
-        (height == fb->GetHeight())) {
+        (height == fb->GetHeight())
+        && ((prefer_separate && fb->IsVideoSurface())
+          || (!prefer_separate && !fb->IsVideoSurface()))) {
       surface = fb.get();
       break;
     }
   }
 
   if (!surface) {
-    NativeSurface *new_surface = CreateBackBuffer(width, height);
-    new_surface->Init(buffer_handler_);
+    NativeSurface *new_surface = nullptr;
+    uint32_t format = 0;
+    if (prefer_separate) {
+      format = plane.plane()->GetPreferredVideoFormat();
+      new_surface = CreateVideoBuffer(width, height);
+    } else {
+      new_surface = CreateBackBuffer(width, height);
+    }
+    new_surface->Init(buffer_handler_, format);
     surfaces_.emplace_back(std::move(new_surface));
     surface = surfaces_.back().get();
   }
@@ -317,6 +322,10 @@ void DisplayPlaneManager::ValidateFinalLayers(
   for (DisplayPlaneState &plane : composition) {
     if (plane.GetCompositionState() == DisplayPlaneState::State::kRender &&
         !plane.GetOffScreenTarget()) {
+      const std::vector<size_t>& src_layers = plane.source_layers();
+      if (src_layers.size() == 1 && layers[src_layers[0]].PreferSeparatePlane()) {
+        plane.SetPreferSeparatePlane(true);
+      }
       EnsureOffScreenTarget(plane);
     }
 
@@ -331,6 +340,7 @@ void DisplayPlaneManager::ValidateFinalLayers(
     for (DisplayPlaneState &plane : composition) {
       if (plane.GetCompositionState() == DisplayPlaneState::State::kRender) {
         plane.GetOffScreenTarget()->SetInUse(false);
+        plane.SetPreferSeparatePlane(false);
       }
     }
 

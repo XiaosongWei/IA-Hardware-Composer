@@ -39,8 +39,10 @@ testlayers_LDADD = \
 	$(GBM_LIBS) \
 	$(EGL_LIBS) \
 	$(GLES2_LIBS) \
+	$(LIBVA_LIBS) \
 	$(top_builddir)/tests/third_party/json-c/libjson-c.la \
-	$(top_builddir)/libhwcomposer.la
+	$(top_builddir)/libhwcomposer.la \
+	$(LIBVA_DRM_LIBS)
 
 testlayers_CFLAGS = \
 	-O0 -g -lm \
