@@ -84,11 +84,6 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
     }
   }
 
-  // We are just compositing Primary layer and nothing else.
-  if (layers.size() == 1) {
-    return render_layers;
-  }
-
   // Retrieve cursor layer data.
   DisplayPlane *cursor_plane = NULL;
   for (auto j = layer_end - 1; j >= layer_begin; j--) {
@@ -133,8 +128,8 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
             layer->PreferSeparatePlane()) {
           composition.emplace_back(j->get(), layer, index);
           if (fall_back) {
-            ResetPlaneTarget(composition.back(), commit_planes.back());
             render_layers = true;
+            ResetPlaneTarget(composition.back(), commit_planes.back());
           }
 
           prefer_seperate_plane = layer->PreferSeparatePlane();
@@ -252,7 +247,7 @@ void DisplayPlaneManager::SetOffScreenCursorPlaneTarget(
 
   if (!surface) {
     NativeSurface *new_surface = CreateBackBuffer(width, height);
-    new_surface->Init(buffer_handler_, true);
+    new_surface->Init(buffer_handler_, 0, true);
     cursor_surfaces_.emplace_back(std::move(new_surface));
     surface = cursor_surfaces_.back().get();
   }
@@ -289,16 +284,30 @@ void DisplayPlaneManager::ReleaseFreeOffScreenTargets() {
 
 void DisplayPlaneManager::EnsureOffScreenTarget(DisplayPlaneState &plane) {
   NativeSurface *surface = NULL;
+  const HwcRect<int> &rect = plane.GetDisplayFrame();
+  int width = rect.right - rect.left;
+  int height = rect.bottom - rect.top;
+  bool video_separate = plane.VideoSeparatePlane();
   for (auto &fb : surfaces_) {
-    if (!fb->InUse()) {
+    if (!fb->InUse() && (width == fb->GetWidth()) &&
+        (height == fb->GetHeight())
+        && ((video_separate && fb->IsVideoSurface())
+          || (!video_separate && !fb->IsVideoSurface()))) {
       surface = fb.get();
       break;
     }
   }
 
   if (!surface) {
-    NativeSurface *new_surface = CreateBackBuffer(width_, height_);
-    new_surface->Init(buffer_handler_);
+    NativeSurface *new_surface = nullptr;
+    uint32_t format = 0;
+    if (video_separate) {
+      format = plane.plane()->GetPreferredVideoFormat();
+      new_surface = CreateVideoBuffer(width, height);
+    } else {
+      new_surface = CreateBackBuffer(width, height);
+    }
+    new_surface->Init(buffer_handler_, format);
     surfaces_.emplace_back(std::move(new_surface));
     surface = surfaces_.back().get();
   }
@@ -311,9 +320,26 @@ void DisplayPlaneManager::ValidateFinalLayers(
     DisplayPlaneStateList &composition, std::vector<OverlayLayer> &layers) {
   std::vector<OverlayPlane> commit_planes;
   for (DisplayPlaneState &plane : composition) {
-    if (plane.GetCompositionState() == DisplayPlaneState::State::kRender &&
-        !plane.GetOffScreenTarget()) {
-      EnsureOffScreenTarget(plane);
+    if (plane.GetCompositionState() == DisplayPlaneState::State::kRender) {
+      const std::vector<size_t>& src_layers = plane.source_layers();
+      const OverlayLayer& first_layer = layers[src_layers[0]];
+      if (src_layers.size() == 1 && first_layer.PreferSeparatePlane()) {
+        uint32_t format = plane.plane()->GetPreferredVideoFormat();
+        // TODO: validate if the format supported by VA
+        if (format) {
+          plane.SetVideoSeparatePlane(true);
+          if (plane.GetOffScreenTarget() &&
+              !plane.GetOffScreenTarget()->IsVideoSurface()) {
+            plane.GetOffScreenTarget()->SetInUse(false);
+            plane.ResetOffScreenTarget();
+            EnsureOffScreenTarget(plane);
+          }
+        }
+      }
+
+      if (!plane.GetOffScreenTarget()) {
+        EnsureOffScreenTarget(plane);
+      }
     }
 
     commit_planes.emplace_back(
@@ -322,11 +348,13 @@ void DisplayPlaneManager::ValidateFinalLayers(
 
   // If this combination fails just fall back to 3D for all layers.
   if (!plane_handler_->TestCommit(commit_planes)) {
+    DTRACE("TestCommit failed, fallback to composite all layers with GPU\n");
     // We start off with Primary plane.
     DisplayPlane *current_plane = primary_plane_.get();
     for (DisplayPlaneState &plane : composition) {
       if (plane.GetCompositionState() == DisplayPlaneState::State::kRender) {
         plane.GetOffScreenTarget()->SetInUse(false);
+        plane.SetVideoSeparatePlane(false);
       }
     }
 

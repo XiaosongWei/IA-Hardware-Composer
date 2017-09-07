@@ -21,6 +21,7 @@
 #include <algorithm>
 
 #include "disjoint_layers.h"
+#include "displayplanemanager.h"
 #include "displayplanestate.h"
 #include "hwctrace.h"
 #include "nativegpuresource.h"
@@ -65,6 +66,8 @@ bool Compositor::Draw(DisplayPlaneStateList &comp_planes,
   const DisplayPlaneState *comp = NULL;
   std::vector<size_t> dedicated_layers;
   std::vector<DrawState> draw_state;
+  std::vector<OverlayLayer*> va_layers;
+  std::vector<NativeSurface*> va_surfaces;
 
   for (DisplayPlaneState &plane : comp_planes) {
     if (plane.GetCompositionState() == DisplayPlaneState::State::kScanout) {
@@ -73,6 +76,14 @@ bool Compositor::Draw(DisplayPlaneStateList &comp_planes,
                               plane.source_layers().end());
     } else if (plane.GetCompositionState() ==
                DisplayPlaneState::State::kRender) {
+      if (plane.VideoSeparatePlane()) {
+        dedicated_layers.insert(dedicated_layers.end(),
+                              plane.source_layers().begin(),
+                              plane.source_layers().end());
+        va_layers.emplace_back(&layers[plane.source_layers()[0]]);
+        va_surfaces.emplace_back(plane.GetOffScreenTarget());
+        continue;
+      }
       comp = &plane;
       std::vector<CompositionRegion> &comp_regions =
           plane.GetCompositionRegion();
@@ -102,10 +113,13 @@ bool Compositor::Draw(DisplayPlaneStateList &comp_planes,
     }
   }
 
-  if (draw_state.empty())
-    return true;
+  if (!va_layers.empty()) {
+    thread_->Draw(va_layers, va_surfaces);
+  }
 
-  thread_->Draw(draw_state, layers);
+  if (!draw_state.empty())
+    thread_->Draw(draw_state, layers);
+
   return true;
 }
 

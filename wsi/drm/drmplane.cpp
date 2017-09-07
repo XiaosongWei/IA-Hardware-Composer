@@ -63,6 +63,20 @@ DrmPlane::~DrmPlane() {
 bool DrmPlane::Initialize(uint32_t gpu_fd,
                           const std::vector<uint32_t>& formats) {
   supported_formats_ = formats;
+  for (uint32_t j = 0; j < supported_formats_.size(); j++) {
+    uint32_t format = supported_formats_.at(j);
+    switch (format) {
+      case DRM_FORMAT_NV12:
+      case DRM_FORMAT_YVU420: // YV12
+      case DRM_FORMAT_YUV420: //I420
+      case DRM_FORMAT_YUV422:
+      case DRM_FORMAT_YUV444:
+      case DRM_FORMAT_YUYV: // YUY2
+        prefered_video_format_ = format;
+      default:
+        break;
+    }
+  }
 
   ScopedDrmObjectPropertyPtr plane_props(
       drmModeObjectGetProperties(gpu_fd, id_, DRM_MODE_OBJECT_PLANE));
@@ -331,6 +345,11 @@ uint32_t DrmPlane::GetFormatForFrameBuffer(uint32_t format) {
 
   return format;
 }
+
+uint32_t DrmPlane::GetPreferredVideoFormat() const {
+  return prefered_video_format_;
+}
+
 
 void DrmPlane::Dump() const {
   DUMPTRACE("Plane Information Starts. -------------");

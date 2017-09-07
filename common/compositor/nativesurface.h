@@ -36,12 +36,16 @@ class NativeSurface {
 
   virtual ~NativeSurface();
 
-  bool Init(NativeBufferHandler* buffer_handler, bool cursor_layer = false);
+  bool Init(NativeBufferHandler* buffer_handler, uint32_t format,
+            bool cursor_layer = false);
 
   bool InitializeForOffScreenRendering(NativeBufferHandler* buffer_handler,
                                        HWCNativeHandle native_handle);
 
   virtual bool MakeCurrent() = 0;
+  virtual bool IsVideoSurface() {
+    return false;
+  }
 
   int GetWidth() const {
     return width_;

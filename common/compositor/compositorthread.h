@@ -29,6 +29,7 @@
 
 #include "fdhandler.h"
 #include "hwcevent.h"
+#include "varenderer.h"
 
 namespace hwcomposer {
 
@@ -45,6 +46,9 @@ class CompositorThread : public HWCThread {
   void Draw(std::vector<DrawState>& states,
             const std::vector<OverlayLayer>& layers);
 
+  void Draw(std::vector<OverlayLayer*>& layers,
+              std::vector<NativeSurface*>& surfaces);
+
   void SetExplicitSyncSupport(bool disable_explicit_sync);
   void FreeResources(bool all_resources);
   void EnsureTasksAreDone();
@@ -55,12 +59,14 @@ class CompositorThread : public HWCThread {
  private:
   enum Tasks {
     kNone = 0,                   // No tasks
-    kRender = 1 << 1,            // Render content.
-    kReleaseResources = 1 << 2,  // Release surfaces from plane manager.
+    kRenderGL = 1 << 1,          // Render GL content.
+    kRenderVA = 1 << 2,          // Render VA content.
+    kReleaseResources = 1 << 3,  // Release surfaces from plane manager.
   };
 
   void ReleaseGpuResources();
-  void HandleDrawRequest();
+  void HandleDrawGLRequest();
+  void HandleDrawVARequest();
   void HandleReleaseRequest();
   void Wait();
 
@@ -71,6 +77,9 @@ class CompositorThread : public HWCThread {
   std::vector<DrawState> states_;
   bool disable_explicit_sync_;
   bool release_all_resources_;
+  std::unique_ptr<VARenderer> va_renderer_;
+  std::vector<OverlayLayer*> layers_;
+  std::vector<NativeSurface*> surfaces_;
   DisplayPlaneManager* plane_manager_ = NULL;
   uint32_t tasks_ = kNone;
   FDHandler fd_chandler_;
