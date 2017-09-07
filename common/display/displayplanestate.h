@@ -141,6 +141,10 @@ class DisplayPlaneState {
     return layer_;
   }
 
+  void ResetOffScreenTarget() {
+    std::vector<NativeSurface *>().swap(surfaces_);
+  }
+
   void SetOffScreenTarget(NativeSurface *target) {
     surfaces_.emplace(surfaces_.begin(), target);
   }
@@ -212,6 +216,14 @@ class DisplayPlaneState {
     return cursor_layer_;
   }
 
+  bool VideoSeparatePlane() const {
+    return video_separate_plane_;
+  }
+
+  void SetVideoSeparatePlane(bool separate) {
+    video_separate_plane_ = separate;
+  }
+
  private:
   State state_ = State::kScanout;
   DisplayPlane *plane_ = NULL;
@@ -222,6 +234,7 @@ class DisplayPlaneState {
   bool recycled_surface_ = false;
   bool clear_surface_ = true;
   bool cursor_plane_ = false;
+  bool video_separate_plane_ = false;
   int cursor_layer_ = 0;
   std::vector<NativeSurface *> surfaces_;
 };

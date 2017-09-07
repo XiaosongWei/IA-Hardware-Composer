@@ -38,7 +38,9 @@ LOCAL_SHARED_LIBRARIES := \
 	libui \
 	libutils \
 	libjson-c \
-	libhwcomposer.$(TARGET_BOARD_PLATFORM)
+	libhwcomposer.$(TARGET_BOARD_PLATFORM) \
+	libva \
+	libva-android
 
 LOCAL_C_INCLUDES := \
 	system/core/include/utils \

@@ -26,7 +26,9 @@ LOCAL_SHARED_LIBRARIES := \
         libui \
         libutils \
         libhwcservice \
-        libbinder
+        libbinder \
+        libva \
+        libva-android
 
 LOCAL_C_INCLUDES := \
         system/core/include/utils \
@@ -34,12 +36,14 @@ LOCAL_C_INCLUDES := \
         $(LOCAL_PATH)/core \
         $(LOCAL_PATH)/compositor \
         $(LOCAL_PATH)/compositor/gl \
+        $(LOCAL_PATH)/compositor/va \
         $(LOCAL_PATH)/display \
         $(LOCAL_PATH)/utils \
         $(LOCAL_PATH)/../os \
         $(LOCAL_PATH)/../os/android \
         $(LOCAL_PATH)/../wsi \
-        $(LOCAL_PATH)/../wsi/drm
+        $(LOCAL_PATH)/../wsi/drm \
+        $(TARGET_OUT_HEADERS)/libva
 
 LOCAL_SRC_FILES := \
         compositor/compositor.cpp \
@@ -47,6 +51,8 @@ LOCAL_SRC_FILES := \
         compositor/factory.cpp \
         compositor/nativesurface.cpp \
         compositor/renderstate.cpp \
+        compositor/va/varenderer.cpp \
+        compositor/va/vasurface.cpp \
         core/gpudevice.cpp \
         core/hwclayer.cpp \
         core/hwclock.cpp \

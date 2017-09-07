@@ -4,6 +4,8 @@ common_SOURCES =              \
     compositor/factory.cpp \
     compositor/nativesurface.cpp \
     compositor/renderstate.cpp \
+    compositor/va/varenderer.cpp \
+    compositor/va/vasurface.cpp \
     core/hwclayer.cpp \
     core/hwclock.cpp \
     core/overlaylayer.cpp \
