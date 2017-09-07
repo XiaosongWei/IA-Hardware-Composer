@@ -27,6 +27,8 @@
 #include "vksurface.h"
 #endif
 
+#include "vasurface.h"
+
 namespace hwcomposer {
 
 NativeSurface* CreateBackBuffer(uint32_t width, uint32_t height) {
@@ -37,6 +39,10 @@ NativeSurface* CreateBackBuffer(uint32_t width, uint32_t height) {
 #else
   return NULL;
 #endif
+}
+
+NativeSurface* CreateVideoBuffer(uint32_t width, uint32_t height) {
+  return new VASurface(width, height);
 }
 
 Renderer* CreateRenderer() {

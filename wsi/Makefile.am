@@ -23,7 +23,7 @@ SUBDIRS = .
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 
-AM_CPP_INCLUDES = -Idrm -I../os/ -I../os/linux/ -I../public/ -I../common/display/ -I../common/core/ -I../common/utils/ -I../common/compositor/
+AM_CPP_INCLUDES = -Idrm -I../os/ -I../os/linux/ -I../public/ -I../common/display/ -I../common/core/ -I../common/utils/ -I../common/compositor/ -I../common/compositor/va
 AM_CPPFLAGS = -std=c++11 -fPIC -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong -fPIE -DENABLE_DOUBLE_BUFFERING -DENABLE_IMPLICIT_CLONE_MODE
 AM_CPPFLAGS += $(AM_CPP_INCLUDES) $(CWARNFLAGS) $(DRM_CFLAGS) $(DEBUG_CFLAGS) -Wformat -Wformat-security
 
@@ -35,12 +35,6 @@ if !ENABLE_GBM
 AM_CPPFLAGS += -DUSE_MINIGBM
 endif
 
-libhwcomposer_wsi_la_LIBADD = \
-	$(DRM_LIBS) \
-	$(GBM_LIBS) \
-	$(EGL_LIBS) \
-	-lm
-
 libhwcomposer_wsi_la_LTLIBRARIES = libhwcomposer_wsi.la
 libhwcomposer_wsi_la_SOURCES = $(wsi_SOURCES)
 libhwcomposer_wsi_ladir = $(libdir)
@@ -49,11 +43,9 @@ libhwcomposer_wsi_la_LDFLAGS = -version-number 0:0:1 -no-undefined -static
 if ENABLE_VULKAN
 AM_CPP_INCLUDES += -I../common/compositor/vk
 AM_CPPFLAGS += -I../common/compositor/vk -DUSE_VK -DDISABLE_EXPLICIT_SYNC
-libhwcomposer_wsi_la_LIBADD += -lvulkan
 else
 AM_CPP_INCLUDES += -I../common/compositor/gl
 AM_CPPFLAGS += -DUSE_GL
-libhwcomposer_wsi_la_LIBADD += $(GLES2_LIBS)
 endif
 
 .PHONY: ChangeLog INSTALL

@@ -49,7 +49,7 @@ extern "C" {
 #endif
 
 #define VTRACE(fmt, ...) fprintf(stderr, "%s: \n" fmt, __func__, ##__VA_ARGS__)
-#define DTRACE(fmt, ...) fprintf(stderr, "%s: \n" fmt, __func__, ##__VA_ARGS__)
+#define DTRACE(fmt, ...) fprintf(stderr, "%s:%s:%d: " fmt, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #define ITRACE(fmt, ...) fprintf(stderr, "\n" fmt, ##__VA_ARGS__)
 #define WTRACE(fmt, ...) fprintf(stderr, "%s: \n" fmt, __func__, ##__VA_ARGS__)
 #define ETRACE(fmt, ...) fprintf(stderr, "%s: \n" fmt, __func__, ##__VA_ARGS__)
