@@ -60,10 +60,12 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
   commit_planes.emplace_back(OverlayPlane(current_plane, primary_layer));
   composition.emplace_back(current_plane, primary_layer,
                            primary_layer->GetZorder());
+  DTRACE("num of layers: %d primary planeID:%d\n", layers.size(), current_plane->id());
   ++layer_begin;
   // Lets ensure we fall back to GPU composition in case
   // primary layer cannot be scanned out directly.
   bool prefer_seperate_plane = primary_layer->PreferSeparatePlane();
+  DTRACE("primary layer prefer separate: %d\n", prefer_seperate_plane);
   bool force_gpu = (pending_modeset && layers.size() > 1) || disable_overlay;
   if (force_gpu || FallbacktoGPU(current_plane, primary_layer, commit_planes)) {
     render_layers = true;
@@ -76,10 +78,12 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
       }
 
       ResetPlaneTarget(last_plane, commit_planes.back());
+      DTRACE("All layers got  composited by GPU\n");
       // We need to composite primary using GPU, lets use this for
       // all layers in this case.
       return render_layers;
     } else {
+      DTRACE("primary layer prefer separate but fallback to GPU\n");
       ResetPlaneTarget(composition.back(), commit_planes.back());
     }
   }
@@ -88,6 +92,7 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
   DisplayPlane *cursor_plane = NULL;
   for (auto j = layer_end - 1; j >= layer_begin; j--) {
     if (j->GetBuffer()->GetUsage() & kLayerCursor) {
+      DTRACE("Found cursor layer\n");
       cursor_layer = &(*(j));
       // Handle Cursor layer.
       if (cursor_layer) {
@@ -120,12 +125,15 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
         OverlayLayer *layer = &(*(i));
         commit_planes.emplace_back(OverlayPlane(j->get(), layer));
         index = i->GetZorder();
+        DTRACE("Overlay planeID:%d assign layer index:%d\n", j->get()->id(), index);
         ++layer_begin;
         // If we are able to composite buffer with the given plane, lets use
         // it.
         bool fall_back = FallbacktoGPU(j->get(), layer, commit_planes);
         if (!fall_back || prefer_seperate_plane ||
             layer->PreferSeparatePlane()) {
+            DTRACE("OverlayplaneID:%d layer:%d previouPrefer:%d layerPrefer:%d\n",
+                j->get()->id(), index, prefer_seperate_plane, layer->PreferSeparatePlane());
           composition.emplace_back(j->get(), layer, index);
           if (fall_back) {
             render_layers = true;
@@ -135,6 +143,8 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
           prefer_seperate_plane = layer->PreferSeparatePlane();
           break;
         } else {
+          DTRACE("LayerIndex:%d fallback to GPU add it to planeID:%d\n",
+                 index, last_plane.plane()->id());
           last_plane.AddLayer(i->GetZorder(), i->GetDisplayFrame(),
                               i->IsCursorLayer());
           commit_planes.pop_back();
@@ -149,6 +159,8 @@ bool DisplayPlaneManager::ValidateLayers(std::vector<OverlayLayer> &layers,
     // We dont have any additional planes. Pre composite remaining layers
     // to the last overlay plane.
     for (auto i = layer_begin; i != layer_end; ++i) {
+      DTRACE("Add remaining layer:%d to planeID:%d\n",
+             i->GetZorder(), last_plane.plane()->id());
       last_plane.AddLayer(i->GetZorder(), i->GetDisplayFrame(),
                           i->IsCursorLayer());
     }
@@ -319,12 +331,18 @@ void DisplayPlaneManager::EnsureOffScreenTarget(DisplayPlaneState &plane) {
 void DisplayPlaneManager::ValidateFinalLayers(
     DisplayPlaneStateList &composition, std::vector<OverlayLayer> &layers) {
   std::vector<OverlayPlane> commit_planes;
+  DTRACE("ValidateFinalLayers\n");
   for (DisplayPlaneState &plane : composition) {
     if (plane.GetCompositionState() == DisplayPlaneState::State::kRender) {
       const std::vector<size_t>& src_layers = plane.source_layers();
       const OverlayLayer& first_layer = layers[src_layers[0]];
       if (src_layers.size() == 1 && first_layer.PreferSeparatePlane()) {
         uint32_t format = plane.plane()->GetPreferredVideoFormat();
+        DTRACE("planeID:%d layerIndex:%d assign to video plane\n",
+               plane.plane()->id(), src_layers[0]);
+        DTRACE("Plane Prefered format: %4.4s\n", (char*)&format);
+        uint32_t input_format = first_layer.GetBuffer()->GetFormat();
+        DTRACE("Video Layer format: %4.4s\n", (char*)&input_format);
         // TODO: validate if the format supported by VA
         if (format) {
           plane.SetVideoSeparatePlane(true);
@@ -332,7 +350,12 @@ void DisplayPlaneManager::ValidateFinalLayers(
               !plane.GetOffScreenTarget()->IsVideoSurface()) {
             plane.GetOffScreenTarget()->SetInUse(false);
             plane.ResetOffScreenTarget();
+            
+            uint32_t fmt = plane.GetOverlayLayer()->GetBuffer()->GetFormat();
+            DTRACE("B4 ensure OverlayLayer: %4.4s OverlayLayer:%p\n", (char*)&fmt, plane.GetOverlayLayer());
             EnsureOffScreenTarget(plane);
+            fmt = plane.GetOverlayLayer()->GetBuffer()->GetFormat();
+            DTRACE("After ensure OverlayLayer: %4.4s OverlayLayer:%p\n", (char*)&fmt, plane.GetOverlayLayer());   
           }
         }
       }
@@ -342,12 +365,15 @@ void DisplayPlaneManager::ValidateFinalLayers(
       }
     }
 
+   uint32_t final_format = plane.GetOverlayLayer()->GetBuffer()->GetFormat();
+   DTRACE("planeID: %d final format: %4.4s\n", plane.plane()->id(), (char*)&final_format);
     commit_planes.emplace_back(
         OverlayPlane(plane.plane(), plane.GetOverlayLayer()));
   }
 
   // If this combination fails just fall back to 3D for all layers.
   if (!plane_handler_->TestCommit(commit_planes)) {
+    DTRACE("TestCommit failed fallback to composite all layers with GPU \n");
     // We start off with Primary plane.
     DisplayPlane *current_plane = primary_plane_.get();
     for (DisplayPlaneState &plane : composition) {

@@ -49,7 +49,7 @@ struct gralloc_handle {
 typedef struct gralloc_handle* HWCNativeHandle;
 
 #define VTRACE(fmt, ...) ALOGV("%s: " fmt, __func__, ##__VA_ARGS__)
-#define DTRACE(fmt, ...) ALOGD("%s: " fmt, __func__, ##__VA_ARGS__)
+#define DTRACE(fmt, ...) ALOGD("%s:%d: " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 #define ITRACE(fmt, ...) ALOGI(fmt, ##__VA_ARGS__)
 #define WTRACE(fmt, ...) ALOGW("%s: " fmt, __func__, ##__VA_ARGS__)
 #define ETRACE(fmt, ...) ALOGE("%s: " fmt, __func__, ##__VA_ARGS__)
