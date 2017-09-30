@@ -438,7 +438,7 @@ bool DisplayQueue::QueueUpdate(std::vector<HwcLayer*>& source_layers,
     }
   }
 
-  DUMP_CURRENT_COMPOSITION_PLANES();
+  //DUMP_CURRENT_COMPOSITION_PLANES();
   // Handle any 3D Composition.
   if (render_layers) {
     if (!compositor_.BeginFrame(disable_ovelays)) {

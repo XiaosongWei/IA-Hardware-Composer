@@ -205,7 +205,7 @@ bool DrmBuffer::CreateFrameBuffer(uint32_t gpu_fd) {
   ReleaseFrameBuffer();
   int ret = drmModeAddFB2(gpu_fd, width_, height_, frame_buffer_format_,
                           gem_handles_, pitches_, offsets_, &fb_id_, 0);
-
+  DTRACE("this:%p CreateFrameBuffer: %d with (%d x %d)\n", this, fb_id_, width_, height_);
   if (ret) {
     ETRACE("drmModeAddFB2 error (%dx%d, %c%c%c%c, handle %d pitch %d) (%s)",
            width_, height_, frame_buffer_format_, frame_buffer_format_ >> 8,
@@ -239,7 +239,7 @@ void DrmBuffer::Dump() {
     DUMPTRACE("BufferUsage: kLayerVideo.");
   DUMPTRACE("Width: %d", width_);
   DUMPTRACE("Height: %d", height_);
-  DUMPTRACE("Fb: %d", fb_id_);
+  DUMPTRACE("this:%p Fb: %d", this, fb_id_);
   DUMPTRACE("Prime Handle: %d", prime_fd_);
   DUMPTRACE("Format: %4.4s", (char*)&format_);
   for (uint32_t i = 0; i < 4; i++) {

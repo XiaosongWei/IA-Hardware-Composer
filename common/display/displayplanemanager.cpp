@@ -349,6 +349,12 @@ void DisplayPlaneManager::ValidateFinalLayers(
   // If this combination fails just fall back to 3D for all layers.
   if (!plane_handler_->TestCommit(commit_planes)) {
     DTRACE("TestCommit failed, fallback to composite all layers with GPU\n");
+    for (OverlayPlane& plane : commit_planes) {
+      DTRACE("\nPlaneID:%d LayerIndex:%d \n", plane.plane->id(), plane.layer->GetZorder());
+      plane.plane->Dump();
+      const_cast<OverlayLayer*>(plane.layer)->Dump();
+    }
+    
     // We start off with Primary plane.
     DisplayPlane *current_plane = primary_plane_.get();
     for (DisplayPlaneState &plane : composition) {
@@ -374,7 +380,8 @@ void DisplayPlaneManager::ValidateFinalLayers(
     }
 
     EnsureOffScreenTarget(last_plane);
-    ReleaseFreeOffScreenTargets();
+    // OffScreenTargets shall be released from CompositorThread
+    //ReleaseFreeOffScreenTargets();
   }
 }
 
